@@ -10,4 +10,4 @@ iris_target = dataset.target
 
 iris_labels = dataset.target_names
 
-print(iris_labels)
+print(dataset.DESCR)
