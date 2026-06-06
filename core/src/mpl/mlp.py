@@ -27,19 +27,23 @@ X_train, X_test, Y_train, Y_test = train_test_split(
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.fit_transform(X_test)
 
-mlp = MLPClassifier(
-    hidden_layer_sizes=(10,),
-    activation='relu',
-    solver='sgd',
-    alpha=0.0001,
-    max_iter=10
-)
 
-mlp.fit(X=X_train, y=Y_train)
+for i in range(10, 2000, 50):
+    mlp = MLPClassifier(
+        hidden_layer_sizes=(10,),
+        activation='relu',
+        solver='sgd',
+        alpha=0.0001,
+        max_iter=i
+    )
+    mlp.fit(X=X_train, y=Y_train)
 
-Y_predictions = mlp.predict(X_test)
+    Y_predictions = mlp.predict(X_test)
 
-accuracy = accuracy_score(Y_test, Y_predictions)
+    accuracy = accuracy_score(Y_test, Y_predictions)
 
 
-print(accuracy)
+    print(accuracy)
+    
+
+
