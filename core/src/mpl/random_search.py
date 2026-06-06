@@ -32,15 +32,14 @@ class MLPParams(TypedDict):
     solver: Literal['adam', 'sgd']
     max_iterations: int
     
-class SearchResult(TypedDict):
+class GetParamsReturn(TypedDict):
     best_accuracy: float
     best_params: MLPParams
     worst_accuracy: float
     worst_params: MLPParams
 
 
-
-def get_params(num_searchs: int) -> SearchResult:
+def get_params(num_searchs: int) -> GetParamsReturn:
     """
         Obtém os parâmetros a serem usados na MLP,
         a função retorna tanto os melhores parâmetros quanto
@@ -50,7 +49,7 @@ def get_params(num_searchs: int) -> SearchResult:
             num_searchs (int): número de buscas a serem realizados
 
         Returns:
-            dict: dicionário com as chaves: best_param, best_accuracy, worst_params, worst_accuracy        
+            GetParamsReturn: dicionário com as chaves: best_param, best_accuracy, worst_params, worst_accuracy        
     """
     
     hidden_neurons = [3, 5, 10, 15, 20, 25, 30]
@@ -67,7 +66,7 @@ def get_params(num_searchs: int) -> SearchResult:
 
     for i in range(num_searchs):
         
-        params = {
+        params: MLPParams = {
             "hidden_neurons_size": random.choice(hidden_neurons),
             "activation": random.choice(activations),
             "alpha": random.choice(alphas),
