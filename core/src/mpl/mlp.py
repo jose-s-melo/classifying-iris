@@ -4,7 +4,7 @@ from sklearn.neural_network import MLPClassifier
 
 
 random_search_results: random_search.SearchResult = random_search.get_params()
-random_search_best_params: random_search.MLPParams = random_search_results['best_params']
+random_search_best_params: random_search.MLPParams = random_search_results["best_params"]
 
 mlp = MLPClassifier(
     hidden_layer_sizes=random_search_best_params['hidden_neurons_size'],
