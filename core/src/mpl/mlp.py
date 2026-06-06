@@ -1,49 +1,15 @@
-from sklearn.   datasets import load_iris
+import random_search
+
 from sklearn.neural_network import MLPClassifier
-from sklearn.preprocessing import RobustScaler
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
 
 
-dataset = load_iris()
+random_search_results: random_search.SearchResult = random_search.get_params()
+random_search_best_params: random_search.MLPParams = random_search_results['best_params']
 
-"""
-O scaler é o 
-"""
-scaler = RobustScaler()
-
-X = dataset['data']
-Y = dataset['target']
-target_names = dataset['target_names']
-feature_names = dataset['feature_names']
-
-
-X_train, X_test, Y_train, Y_test = train_test_split(
-    X, 
-    Y, 
-    test_size=0.3)
-
-
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.fit_transform(X_test)
-
-
-for i in range(10, 2000, 50):
-    mlp = MLPClassifier(
-        hidden_layer_sizes=(10,),
-        activation='relu',
-        solver='sgd',
-        alpha=0.0001,
-        max_iter=i
-    )
-    mlp.fit(X=X_train, y=Y_train)
-
-    Y_predictions = mlp.predict(X_test)
-
-    accuracy = accuracy_score(Y_test, Y_predictions)
-
-
-    print(accuracy)
-    
-
-
+mlp = MLPClassifier(
+    hidden_layer_sizes=random_search_best_params['hidden_neurons_size'],
+    activation=random_search_best_params['activation'],
+    alpha=random_search_best_params['alpha'],
+    solver=random_search_best_params['solver'],
+    max_iter=random_search_best_params['max_iterations']
+)
