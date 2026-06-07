@@ -88,7 +88,7 @@ def get_params(num_searchs: int = 50, verbose: bool = False) -> GetParamsReturn:
         
         historic.append(HistoricItem(params, accuracy))
 
-        if (verbose):
+        if verbose:
             print(
                 f"Teste {i+1:02d} | "
                 f"Acurácia = {accuracy:.4f}"
@@ -103,7 +103,7 @@ def get_params(num_searchs: int = 50, verbose: bool = False) -> GetParamsReturn:
             worst_params = params
             
 
-    if(verbose):
+    if verbose:
         print()
         print(f"Melhor acurácia: {best_accuracy}")
         print(f"Melhores parâmetros: {best_params}")
