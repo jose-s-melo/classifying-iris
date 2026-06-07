@@ -13,6 +13,18 @@ Treinar uma rede neural artificial MLP com apenas 1 camada escondida para classi
 
 Para executar use:
 ```bash
-cd core
-uv run python src/mlp.py
+cd core/src/
+uv run python -m arquivo_para_executar
+
+# Exemplo
+
+uv run python -m mlp.random_search
+```
+
+---
+
+Para executar os testes:
+```bash
+cd core/src/
+uv run python -m pytest
 ```

@@ -1,5 +1,4 @@
-import random_search
-import genetic_search
+from mlp import (random_search, genetic_search)
 
 def main_test_1():
     params = random_search.get_params()
