@@ -274,3 +274,62 @@ def get_params(
         "historic": historic
     }
 
+
+def get_best_mlp(generations: int = 10, population_size: int = 10, mutation_rate: float = 0.2) -> MLPClassifier:
+    """
+        Obtém a melhor mlp dada a busca genética.
+        
+        Args:
+            generations (int): número de gerações, por padrão é 10
+            population_size (int): tamanho da população, por padrão é 10
+            mutation_rate (float): taxa de mutação, por padrão é 0.2
+        
+        Returns:
+            MLPClassifier: a melhor rede MLPClassifier
+    """
+    params: MLPParams = get_params(
+        generations=generations,
+        population_size=population_size,
+        mutation_rate=mutation_rate
+    )["best_params"]
+    
+    mlp: MLPClassifier = MLPClassifier(
+        hidden_layer_sizes=params['hidden_neurons_size'],
+        activation=params['activation'],
+        alpha=params['alpha'],
+        solver=params['solver'],
+        max_iter=params['max_iterations']
+    )
+    
+    return mlp
+
+
+def get_worst_mlp(generations: int = 10, population_size: int = 10, mutation_rate: float = 0.2) -> MLPClassifier:
+    """
+        Obtém a pior mlp dada a busca genética.
+        
+        Args:
+            generations (int): número de gerações, por padrão é 10
+            population_size (int): tamanho da população, por padrão é 10
+            mutation_rate (float): taxa de mutação, por padrão é 0.2
+        
+        Returns:
+            MLPClassifier: a pior rede MLPClassifier
+    """
+    params: MLPParams = get_params(
+        generations=generations,
+        population_size=population_size,
+        mutation_rate=mutation_rate
+    )["worst_params"]
+    
+    mlp: MLPClassifier = MLPClassifier(
+        hidden_layer_sizes=params['hidden_neurons_size'],
+        activation=params['activation'],
+        alpha=params['alpha'],
+        solver=params['solver'],
+        max_iter=params['max_iterations']
+    )
+    
+    return mlp
+
+

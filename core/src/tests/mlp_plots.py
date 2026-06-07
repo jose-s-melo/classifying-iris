@@ -1,15 +1,199 @@
-from typing import Dict, List, Any
+from typing import Dict, List
 from collections import defaultdict
 import matplotlib.pyplot as plot
-from mlp.random_search import get_params, GetParamsReturn, HistoricItem
+import numpy as np
+import warnings
+from sklearn.exceptions import ConvergenceWarning
+from mlp.random_search import get_params as get_random_params
+from mlp.genetic_search import get_params as get_genetic_params
+from mlp.common import GetParamsReturn, HistoricItem
 from pathlib import Path
 
+warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 PATH_TO_SAVE = Path("./plots")
 PATH_TO_SAVE.mkdir(exist_ok=True)
 
+
 def calculate_mean(values: List[float]) -> float:
     return sum(values) / len(values) if values else 0.0
+
+
+def get_running_max(historic: List[HistoricItem]) -> List[float]:
+    running_max = []
+    current_max = 0.0
+    for item in historic:
+        current_max = max(current_max, item.accuracy)
+        running_max.append(current_max)
+    return running_max
+
+
+def get_generational_best(
+    historic: List[HistoricItem], population_size: int
+) -> List[float]:
+    generational_best = []
+    current_max = 0.0
+    if not historic or population_size <= 0:
+        return []
+    num_generations = len(historic) // population_size
+    for g in range(num_generations):
+        generation_slice = historic[g * population_size : (g + 1) * population_size]
+        if generation_slice:
+            generation_max = max(item.accuracy for item in generation_slice)
+            current_max = max(current_max, generation_max)
+        generational_best.append(current_max)
+    return generational_best
+
+
+def group_accuracies_by_param(
+    historic: List[HistoricItem], param_keys: List[str]
+) -> Dict[str, Dict[str, List[float]]]:
+    grouped = defaultdict(lambda: defaultdict(list))
+    for result in historic:
+        params = (
+            result.params if isinstance(result.params, dict) else vars(result.params)
+        )
+        for param_key in param_keys:
+            param_value = params.get(param_key)
+            if param_value is not None:
+                grouped[param_key][str(param_value)].append(result.accuracy)
+    return grouped
+
+
+def generate_median_search_comparison_plot(num_samples: int = 15):
+    from concurrent.futures import ProcessPoolExecutor
+
+    print(
+        f"Running {num_samples} samples of Random Search and Genetic Search in parallel..."
+    )
+    with ProcessPoolExecutor() as executor:
+        random_futures = [
+            executor.submit(get_random_params, 10) for _ in range(num_samples)
+        ]
+        genetic_futures = [
+            executor.submit(get_genetic_params, 10, 10) for _ in range(num_samples)
+        ]
+
+        random_results = [f.result() for f in random_futures]
+        genetic_results = [f.result() for f in genetic_futures]
+
+    random_runs_running_max = []
+    for res in random_results:
+        running_max = get_running_max(res["historic"])
+        random_runs_running_max.append(running_max)
+
+    genetic_runs_running_max = []
+    for res in genetic_results:
+        running_max = get_generational_best(res["historic"], 10)
+        genetic_runs_running_max.append(running_max)
+
+    # Convert lists of lists to arrays for element-wise statistics
+    random_runs_running_max = np.array(random_runs_running_max)  # shape (15, 10)
+    random_medians = np.median(random_runs_running_max, axis=0)
+    random_means = np.mean(random_runs_running_max, axis=0)
+
+    genetic_runs_running_max = np.array(genetic_runs_running_max)  # shape (15, 10)
+    genetic_medians = np.median(genetic_runs_running_max, axis=0)
+    genetic_means = np.mean(genetic_runs_running_max, axis=0)
+
+    # Styling of the new plot
+    plot.figure(figsize=(10, 6))
+    plot.grid(True, linestyle="--", alpha=0.5)
+
+    steps_random = range(1, len(random_medians) + 1)
+    steps_genetic = range(1, len(genetic_medians) + 1)
+
+    # Color choices
+    color_random = "#E63946"  # Crimson
+    color_genetic = "#1D3557"  # Indigo
+
+    # Plot Random Search
+    plot.plot(
+        steps_random,
+        random_medians,
+        label="Random Search (Median)",
+        color=color_random,
+        linewidth=2.5,
+    )
+    plot.plot(
+        steps_random,
+        random_means,
+        label="Random Search (Mean)",
+        color=color_random,
+        linestyle=":",
+        linewidth=2.0,
+        alpha=0.85,
+    )
+    # Shading interquartile range (IQR)
+    random_q25 = np.percentile(random_runs_running_max, 25, axis=0)
+    random_q75 = np.percentile(random_runs_running_max, 75, axis=0)
+    plot.fill_between(
+        steps_random,
+        random_q25,
+        random_q75,
+        color=color_random,
+        alpha=0.15,
+        label="Random Search (IQR)",
+    )
+
+    # Plot Genetic Search
+    plot.plot(
+        steps_genetic,
+        genetic_medians,
+        label="Genetic Search (Median)",
+        color=color_genetic,
+        linewidth=2.5,
+    )
+    plot.plot(
+        steps_genetic,
+        genetic_means,
+        label="Genetic Search (Mean)",
+        color=color_genetic,
+        linestyle=":",
+        linewidth=2.0,
+        alpha=0.85,
+    )
+    # Shading interquartile range (IQR)
+    genetic_q25 = np.percentile(genetic_runs_running_max, 25, axis=0)
+    genetic_q75 = np.percentile(genetic_runs_running_max, 75, axis=0)
+    plot.fill_between(
+        steps_genetic,
+        genetic_q25,
+        genetic_q75,
+        color=color_genetic,
+        alpha=0.15,
+        label="Genetic Search (IQR)",
+    )
+
+    plot.title(
+        f"Search Algorithm Performance Comparison ({num_samples} runs)",
+        fontsize=14,
+        fontweight="bold",
+        pad=15,
+    )
+    plot.xlabel(
+        "Algorithm Step (Evaluation for Random / Generation for Genetic)",
+        fontsize=12,
+        labelpad=10,
+    )
+    plot.ylabel("Accuracy", fontsize=12, labelpad=10)
+    plot.ylim(bottom=0.0, top=1.05)
+    plot.xticks(range(1, 11))
+
+    # Clean axes spines
+    ax = plot.gca()
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_color("#cccccc")
+    ax.spines["bottom"].set_color("#cccccc")
+
+    plot.legend(loc="lower right", frameon=True, facecolor="white", edgecolor="#e0e0e0")
+    plot.tight_layout()
+    plot.savefig(PATH_TO_SAVE / "median_search_comparison.png", dpi=300)
+    plot.close()
+    print(
+        f"Saved median comparison plot to {PATH_TO_SAVE / 'median_search_comparison.png'}"
+    )
 
 
 def process_and_plot_results():
@@ -21,49 +205,79 @@ def process_and_plot_results():
         "max_iterations": ("Max Iterations", "max_iterations"),
     }
 
-    random_search_results: GetParamsReturn = get_params(num_searchs=100)
-    param_results: List[HistoricItem] = random_search_results["historic"]
-
-    grouped_accuracies: Dict[str, Dict[Any, List[float]]] = defaultdict(
-        lambda: defaultdict(list)
+    random_search_results: GetParamsReturn = get_random_params(num_searchs=100)
+    genetic_search_results: GetParamsReturn = get_genetic_params(
+        generations=5, population_size=10
     )
 
-    for result in param_results:
-        params = (
-            result.params if isinstance(result.params, dict) else vars(result.params)
-        )
+    random_historic = random_search_results["historic"]
+    genetic_historic = genetic_search_results["historic"]
 
-        for param_key in PARAM_CONFIG.keys():
-            param_value = params.get(param_key)
-            if param_value is not None:
-                grouped_accuracies[param_key][str(param_value)].append(result.accuracy)
+    random_running = get_running_max(random_historic)
+    genetic_running = get_running_max(genetic_historic)
+
+    plot.clf()
+    plot.plot(range(1, len(random_running) + 1), random_running, label="Random Search")
+    plot.plot(
+        range(1, len(genetic_running) + 1), genetic_running, label="Genetic Search"
+    )
+    plot.title("Search Algorithm Performance Comparison")
+    plot.xlabel("Number of Evaluations")
+    plot.ylabel("Best Accuracy")
+    plot.legend()
+    plot.savefig(PATH_TO_SAVE / "search_comparison.png")
+    plot.close()
+
+    # Generate the new median comparison plot
+    generate_median_search_comparison_plot(50)
+
+    random_grouped = group_accuracies_by_param(
+        random_historic, list(PARAM_CONFIG.keys())
+    )
+    genetic_grouped = group_accuracies_by_param(
+        genetic_historic, list(PARAM_CONFIG.keys())
+    )
 
     for param_key, (title, file_prefix) in PARAM_CONFIG.items():
-        param_data = grouped_accuracies.get(param_key)
-        if not param_data:
-            continue
+        random_data = random_grouped.get(param_key, {})
+        genetic_data = genetic_grouped.get(param_key, {})
 
-        x_values = list(param_data.keys())
-        y_values = [calculate_mean(acc_list) for acc_list in param_data.values()]
+        all_keys = sorted(list(set(random_data.keys()) | set(genetic_data.keys())))
+        random_means = [calculate_mean(random_data.get(k, [])) for k in all_keys]
+        genetic_means = [calculate_mean(genetic_data.get(k, [])) for k in all_keys]
+
+        x = np.arange(len(all_keys))
+        width = 0.35
 
         plot.clf()
-        plot.bar(x_values, y_values)
+        plot.bar(x - width / 2, random_means, width, label="Random Search")
+        plot.bar(x + width / 2, genetic_means, width, label="Genetic Search")
         plot.title(f"Mean Accuracy by {title}")
         plot.xlabel(title)
         plot.ylabel("Accuracy")
-        plot.savefig(PATH_TO_SAVE / f"{file_prefix}_bar.png")
-
-        plot.clf()
-        for param_value, accuracies in param_data.items():
-            plot.hist(
-                accuracies, alpha=0.5, label=f"{param_key}: {param_value}", bins=10
-            )
-
-        plot.title(f"Accuracy Distribution by {title}")
-        plot.xlabel("Accuracy")
-        plot.ylabel("Frequency")
+        plot.xticks(x, all_keys)
         plot.legend()
+        plot.savefig(PATH_TO_SAVE / f"{file_prefix}_bar.png")
+        plot.close()
+
+        fig, (ax1, ax2) = plot.subplots(1, 2, figsize=(12, 5), sharey=True)
+        for param_value, accuracies in random_data.items():
+            ax1.hist(accuracies, alpha=0.5, label=param_value, bins=10)
+        ax1.set_title("Random Search")
+        ax1.set_xlabel("Accuracy")
+        ax1.set_ylabel("Frequency")
+        ax1.legend()
+
+        for param_value, accuracies in genetic_data.items():
+            ax2.hist(accuracies, alpha=0.5, label=param_value, bins=10)
+        ax2.set_title("Genetic Search")
+        ax2.set_xlabel("Accuracy")
+        ax2.legend()
+
+        fig.suptitle(f"Accuracy Distribution by {title}")
+        plot.tight_layout()
         plot.savefig(PATH_TO_SAVE / f"{file_prefix}_hist.png")
+        plot.close()
 
 
 if __name__ == "__main__":
