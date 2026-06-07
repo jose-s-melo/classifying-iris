@@ -1,0 +1,10 @@
+Name                              Stmts   Miss  Cover   Missing
+---------------------------------------------------------------
+mlp/__init__.py                       0      0   100%
+mlp/common.py                        19      0   100%
+mlp/genetic_search.py                85     10    88%   175-176, 198, 217, 260-267
+mlp/random_search.py                 60      7    88%   92, 107-112
+tests/genetic_algorithm_test.py      75      0   100%
+tests/mlp_test.py                   133     22    83%   326-351
+---------------------------------------------------------------
+TOTAL                               372     39    90%
