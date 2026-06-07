@@ -28,3 +28,11 @@ Para executar os testes:
 cd core/src/
 uv run python -m pytest
 ```
+
+Para verificar a cobertura:
+```bash
+cd core/src/
+uv run python -m pytest
+coverage run -m pytest
+coverage report -m
+```
