@@ -12,3 +12,8 @@ dependencies = [
     "scipy>=1.17.1",
     "statsmodels>=0.14.6",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+filterwarnings = ["ignore::sklearn.exceptions.ConvergenceWarning"]
+
