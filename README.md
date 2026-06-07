@@ -36,3 +36,9 @@ uv run python -m pytest
 coverage run -m pytest
 coverage report -m
 ```
+
+Para salvar a cobertura em um arquivo:
+```bash
+cd core/src/
+coverage report -m > tests/coverage.txt
+```
