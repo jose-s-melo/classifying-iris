@@ -4,8 +4,8 @@ Cada função de teste verifica uma etapa por vez.
 """
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mpl')))
-import random_search 
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mpl')))
+from mlp import random_search
 
 from sklearn.neural_network import MLPClassifier
 
