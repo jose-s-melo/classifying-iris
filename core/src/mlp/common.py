@@ -1,4 +1,7 @@
 from typing import TypedDict, Literal
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
+
+MLPScaler = StandardScaler | MinMaxScaler | RobustScaler
 
 class MLPParams(TypedDict):
     hidden_neurons_size: int
@@ -6,6 +9,7 @@ class MLPParams(TypedDict):
     alpha: float
     solver: Literal['adam', 'sgd']
     max_iterations: int
+    scaler: Literal['standard', 'minmax', 'robust']
     
 
 class HistoricItem:

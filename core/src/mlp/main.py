@@ -9,9 +9,9 @@ def main_test_1():
         print()
 
 def main_test_2():
-    worst_mlp = random_search.get_worst_mlp(10)
+    worst_mlp, worst_scaler = random_search.get_worst_mlp(10)
     
-    best_mlp = random_search.get_best_mlp(10)
+    best_mlp, best_scaler = random_search.get_best_mlp(10)
 
 def main_test_3():
     params = genetic_search.get_params(
@@ -25,19 +25,21 @@ def main_test_3():
         print()
 
 def main_test_4():
-    worst_mlp = genetic_search.get_worst_mlp(
+    worst_mlp, worst_scaler = genetic_search.get_worst_mlp(
         generations=5,
         population_size=10
     )
 
-    best_mlp = genetic_search.get_best_mlp(
+    best_mlp, best_scaler = genetic_search.get_best_mlp(
         generations=5,
         population_size=10
     )
 
     print(best_mlp)
+    print(best_scaler)
     print()
     print(worst_mlp)
+    print(worst_scaler)
 
 def main_test_5():
     params = genetic_search.get_params(

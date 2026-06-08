@@ -68,10 +68,10 @@ def generate_median_search_comparison_plot(num_samples: int = 15):
     )
     with ProcessPoolExecutor() as executor:
         random_futures = [
-            executor.submit(get_random_params, 10) for _ in range(num_samples)
+            executor.submit(get_random_params, 15) for _ in range(num_samples)
         ]
         genetic_futures = [
-            executor.submit(get_genetic_params, 10, 10) for _ in range(num_samples)
+            executor.submit(get_genetic_params, 3, 5) for _ in range(num_samples)
         ]
 
         random_results = [f.result() for f in random_futures]
@@ -84,15 +84,15 @@ def generate_median_search_comparison_plot(num_samples: int = 15):
 
     genetic_runs_running_max = []
     for res in genetic_results:
-        running_max = get_generational_best(res["historic"], 10)
+        running_max = get_running_max(res["historic"])
         genetic_runs_running_max.append(running_max)
 
     # Convert lists of lists to arrays for element-wise statistics
-    random_runs_running_max = np.array(random_runs_running_max)  # shape (15, 10)
+    random_runs_running_max = np.array(random_runs_running_max)  # shape (15, 15)
     random_medians = np.median(random_runs_running_max, axis=0)
     random_means = np.mean(random_runs_running_max, axis=0)
 
-    genetic_runs_running_max = np.array(genetic_runs_running_max)  # shape (15, 10)
+    genetic_runs_running_max = np.array(genetic_runs_running_max)  # shape (15, 15)
     genetic_medians = np.median(genetic_runs_running_max, axis=0)
     genetic_means = np.mean(genetic_runs_running_max, axis=0)
 
@@ -172,13 +172,13 @@ def generate_median_search_comparison_plot(num_samples: int = 15):
         pad=15,
     )
     plot.xlabel(
-        "Algorithm Step (Evaluation for Random / Generation for Genetic)",
+        "Cumulative Evaluations (Model Fits)",
         fontsize=12,
         labelpad=10,
     )
     plot.ylabel("Accuracy", fontsize=12, labelpad=10)
     plot.ylim(bottom=0.0, top=1.05)
-    plot.xticks(range(1, 11))
+    plot.xticks(np.arange(0, 16, 2))
 
     # Clean axes spines
     ax = plot.gca()
@@ -203,11 +203,12 @@ def process_and_plot_results():
         "solver": ("Solvers", "solver"),
         "hidden_neurons_size": ("Hidden Neuron Size", "hidden_neuron_size"),
         "max_iterations": ("Max Iterations", "max_iterations"),
+        "scaler": ("Scalers", "scaler"),
     }
 
-    random_search_results: GetParamsReturn = get_random_params(num_searchs=100)
+    random_search_results: GetParamsReturn = get_random_params(num_searchs=15)
     genetic_search_results: GetParamsReturn = get_genetic_params(
-        generations=5, population_size=10
+        generations=3, population_size=5
     )
 
     random_historic = random_search_results["historic"]

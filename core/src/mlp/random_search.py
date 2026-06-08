@@ -1,11 +1,10 @@
 import random
 from sklearn.neural_network import MLPClassifier
 from sklearn.datasets import load_iris
-from sklearn.neural_network import MLPClassifier
-from sklearn.preprocessing import RobustScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
-from mlp.common import (MLPParams, GetParamsReturn, HistoricItem)
+from mlp.common import MLPParams, GetParamsReturn, HistoricItem, MLPScaler
 
 import warnings
 from sklearn.exceptions import ConvergenceWarning
@@ -28,11 +27,6 @@ X_train, X_test, Y_train, Y_test = train_test_split(
     random_state=50
 )
 
-scaler = RobustScaler()
-
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
-
 
 def get_params(num_searchs: int = 50, verbose: bool = False) -> GetParamsReturn:
     """
@@ -53,6 +47,7 @@ def get_params(num_searchs: int = 50, verbose: bool = False) -> GetParamsReturn:
     solvers = ['adam', 'sgd']
     alphas = [0.0001, 0.001, 0.01, 0.1]
     num_iterations = [10, 100, 500, 1000, 2000]
+    scalers = ['standard', 'minmax', 'robust']
 
     best_accuracy = 0
     best_params = None
@@ -63,14 +58,25 @@ def get_params(num_searchs: int = 50, verbose: bool = False) -> GetParamsReturn:
     historic: list[HistoricItem] = []
 
     for i in range(num_searchs):
-        
         params: MLPParams = {
             "hidden_neurons_size": random.choice(hidden_neurons),
             "activation": random.choice(activations),
             "alpha": random.choice(alphas),
             "solver": random.choice(solvers),
-            "max_iterations": random.choice(num_iterations)
+            "max_iterations": random.choice(num_iterations),
+            "scaler": random.choice(scalers)
         }
+        
+        scaler_name = params["scaler"]
+        if scaler_name == "standard":
+            scaler = StandardScaler()
+        elif scaler_name == "minmax":
+            scaler = MinMaxScaler()
+        else:
+            scaler = RobustScaler()
+            
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
         
         mlp = MLPClassifier(
             hidden_layer_sizes=(params["hidden_neurons_size"],),
@@ -80,9 +86,9 @@ def get_params(num_searchs: int = 50, verbose: bool = False) -> GetParamsReturn:
             max_iter=params["max_iterations"]
         )
         
-        mlp.fit(X_train, Y_train)
+        mlp.fit(X_train_scaled, Y_train)
 
-        predictions = mlp.predict(X_test)
+        predictions = mlp.predict(X_test_scaled)
 
         accuracy = accuracy_score(Y_test, predictions)
         
@@ -121,19 +127,10 @@ def get_params(num_searchs: int = 50, verbose: bool = False) -> GetParamsReturn:
     }
 
 
-def get_best_mlp(num_searchs: int) -> MLPClassifier:
-    """
-        Obtém a melhor mlp dada uma quantidade de buscas.
-        
-        Args:
-            num_searchs (int): número de buscas a serem realizados, por padrão é 50
-        
-        Returns:
-            MLPClassifier: a melhor rede MLPClassifier
-    """
+def get_best_mlp(num_searchs: int) -> tuple[MLPClassifier, MLPScaler]:
     params: MLPParams = get_params(num_searchs)["best_params"]
     
-    mlp: MLPClassifier = MLPClassifier(
+    mlp = MLPClassifier(
         hidden_layer_sizes=params['hidden_neurons_size'],
         activation=params['activation'],
         alpha=params['alpha'],
@@ -141,22 +138,21 @@ def get_best_mlp(num_searchs: int) -> MLPClassifier:
         max_iter=params['max_iterations']
     )
     
-    return mlp
+    scaler_name = params["scaler"]
+    if scaler_name == "standard":
+        scaler = StandardScaler()
+    elif scaler_name == "minmax":
+        scaler = MinMaxScaler()
+    else:
+        scaler = RobustScaler()
+        
+    return mlp, scaler
 
 
-def get_worst_mlp(num_searchs: int) -> MLPClassifier:
-    """
-        Obtém a pior mlp dada uma quantidade de buscas.
-        
-        Args:
-            num_searchs (int): número de buscas a serem realizados, por padrão é 50
-        
-        Returns:
-            MLPClassifier: a pior rede MLPClassifier
-    """
+def get_worst_mlp(num_searchs: int) -> tuple[MLPClassifier, MLPScaler]:
     params: MLPParams = get_params(num_searchs)["worst_params"]
     
-    mlp: MLPClassifier = MLPClassifier(
+    mlp = MLPClassifier(
         hidden_layer_sizes=params['hidden_neurons_size'],
         activation=params['activation'],
         alpha=params['alpha'],
@@ -164,5 +160,13 @@ def get_worst_mlp(num_searchs: int) -> MLPClassifier:
         max_iter=params['max_iterations']
     )
     
-    return mlp
+    scaler_name = params["scaler"]
+    if scaler_name == "standard":
+        scaler = StandardScaler()
+    elif scaler_name == "minmax":
+        scaler = MinMaxScaler()
+    else:
+        scaler = RobustScaler()
+        
+    return mlp, scaler
     

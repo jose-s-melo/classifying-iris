@@ -15,6 +15,7 @@ VALORES_VALIDOS = {
     "alpha":               [0.0001, 0.001, 0.01, 0.1],
     "solver":              ["adam", "sgd"],
     "max_iterations":      [10, 100, 500, 1000, 2000],
+    "scaler":              ["standard", "minmax", "robust"],
 }
 
 NUM_BUSCAS_RAPIDO = 5   # valor pequeno = agilidade.
@@ -231,8 +232,7 @@ def test_cada_item_do_historico_tem_accuracy_e_params():
     print("OK  test_cada_item_do_historico_tem_accuracy_e_params")
 
 def test_get_best_mlp_retorna_mlpclassifier():
-    """get_best_mlp() deve retornar um objeto MLPClassifier do sklearn."""
-    mlp = random_search.get_best_mlp(num_searchs=NUM_BUSCAS_RAPIDO)
+    mlp, scaler = random_search.get_best_mlp(num_searchs=NUM_BUSCAS_RAPIDO)
 
     assert isinstance(mlp, MLPClassifier), (
         f"get_best_mlp() deveria retornar MLPClassifier, mas retornou {type(mlp)}"
@@ -242,8 +242,7 @@ def test_get_best_mlp_retorna_mlpclassifier():
 
 
 def test_get_worst_mlp_retorna_mlpclassifier():
-    """get_worst_mlp() deve retornar um objeto MLPClassifier do sklearn."""
-    mlp = random_search.get_worst_mlp(num_searchs=NUM_BUSCAS_RAPIDO)
+    mlp, scaler = random_search.get_worst_mlp(num_searchs=NUM_BUSCAS_RAPIDO)
 
     assert isinstance(mlp, MLPClassifier), (
         f"get_worst_mlp() deveria retornar MLPClassifier, mas retornou {type(mlp)}"
@@ -253,11 +252,7 @@ def test_get_worst_mlp_retorna_mlpclassifier():
 
 
 def test_get_best_mlp_usa_parametros_validos():
-    """
-    Os hiperparâmetros configurados na MLP retornada por get_best_mlp()
-    devem ser valores pertencentes ao espaço de busca definido.
-    """
-    mlp = random_search.get_best_mlp(num_searchs=NUM_BUSCAS_RAPIDO)
+    mlp, scaler = random_search.get_best_mlp(num_searchs=NUM_BUSCAS_RAPIDO)
 
     neuronio = mlp.hidden_layer_sizes if isinstance(mlp.hidden_layer_sizes, int) else mlp.hidden_layer_sizes[0]
 
