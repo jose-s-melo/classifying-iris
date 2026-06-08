@@ -263,3 +263,47 @@ def test_cada_item_do_historico_tem_params_e_accuracy():
     for item in resultado["historic"]:
         assert hasattr(item, "params")
         assert hasattr(item, "accuracy")
+
+
+def test_get_params_best_e_worst_params_nao_sao_none():
+    resultado = genetic_search.get_params(
+        generations=GERACOES_RAPIDAS,
+        population_size=POPULACAO_RAPIDA
+    )
+
+    assert resultado["best_params"] is not None
+    assert resultado["worst_params"] is not None
+
+
+def test_get_params_best_e_worst_params_tem_valores_validos():
+    resultado = genetic_search.get_params(
+        generations=GERACOES_RAPIDAS,
+        population_size=POPULACAO_RAPIDA
+    )
+
+    for params in [resultado["best_params"], resultado["worst_params"]]:
+        for chave, validos in VALORES_VALIDOS.items():
+            assert params[chave] in validos
+
+
+def test_get_params_verbose_true_nao_quebra(capsys):
+    genetic_search.get_params(
+        generations=1,
+        population_size=4,
+        verbose=True
+    )
+
+    saida = capsys.readouterr().out
+
+    assert "Geração" in saida
+    assert "Melhor acurácia" in saida
+
+
+def test_get_params_com_populacao_minima_dois():
+    resultado = genetic_search.get_params(
+        generations=1,
+        population_size=2
+    )
+
+    assert len(resultado["historic"]) == 2
+    assert 0.0 <= resultado["best_accuracy"] <= 1.0
