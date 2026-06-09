@@ -4,12 +4,13 @@ from sklearn.datasets import load_iris
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
-from sklearn.preprocessing import RobustScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 
 from mlp.common import (
     MLPParams,
     HistoricItem,
-    GetParamsReturn
+    GetParamsReturn,
+    MLPScaler
 )
 
 dataset = load_iris()
@@ -25,17 +26,13 @@ X_train, X_test, Y_train, Y_test = train_test_split(
     random_state=50
 )
 
-scaler = RobustScaler()
-
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
-
 def create_individual(
     hidden_neurons: list[int],
     activations: list[str],
     alphas: list[float],
     solvers: list[str],
-    num_iterations: list[int]
+    num_iterations: list[int],
+    scalers: list[str]
 ) -> MLPParams:
 
     return {
@@ -43,11 +40,22 @@ def create_individual(
         "activation": random.choice(activations),
         "alpha": random.choice(alphas),
         "solver": random.choice(solvers),
-        "max_iterations": random.choice(num_iterations)
+        "max_iterations": random.choice(num_iterations),
+        "scaler": random.choice(scalers)
     }
 
 
 def evaluate(individual: MLPParams) -> float:
+    scaler_name = individual["scaler"]
+    if scaler_name == "standard":
+        scaler = StandardScaler()
+    elif scaler_name == "minmax":
+        scaler = MinMaxScaler()
+    else:
+        scaler = RobustScaler()
+
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
 
     mlp = MLPClassifier(
         hidden_layer_sizes=(
@@ -60,9 +68,9 @@ def evaluate(individual: MLPParams) -> float:
         random_state=50
     )
 
-    mlp.fit(X_train, Y_train)
+    mlp.fit(X_train_scaled, Y_train)
 
-    predictions = mlp.predict(X_test)
+    predictions = mlp.predict(X_test_scaled)
 
     return accuracy_score(
         Y_test,
@@ -95,6 +103,10 @@ def crossover(
         "max_iterations": random.choice([
             parent1["max_iterations"],
             parent2["max_iterations"]
+        ]),
+        "scaler": random.choice([
+            parent1["scaler"],
+            parent2["scaler"]
         ])
     }
 
@@ -106,7 +118,8 @@ def mutate(
     activations: list[str],
     alphas: list[float],
     solvers: list[str],
-    num_iterations: list[int]
+    num_iterations: list[int],
+    scalers: list[str]
 ) -> MLPParams:
 
     if random.random() < mutation_rate:
@@ -134,6 +147,11 @@ def mutate(
             num_iterations
         )
 
+    if random.random() < mutation_rate:
+        individual["scaler"] = random.choice(
+            scalers
+        )
+
     return individual
 
 
@@ -149,6 +167,7 @@ def get_params(
     solvers = ['adam', 'sgd']
     alphas = [0.0001, 0.001, 0.01, 0.1]
     num_iterations = [10, 100, 500, 1000, 2000]
+    scalers = ['standard', 'minmax', 'robust']
 
     population = [
         create_individual(
@@ -156,7 +175,8 @@ def get_params(
             activations,
             alphas,
             solvers,
-            num_iterations
+            num_iterations,
+            scalers
         )
         for _ in range(population_size)
     ]
@@ -249,7 +269,8 @@ def get_params(
                 activations,
                 alphas,
                 solvers,
-                num_iterations
+                num_iterations,
+                scalers
             )
 
             new_population.append(child)
@@ -275,25 +296,14 @@ def get_params(
     }
 
 
-def get_best_mlp(generations: int = 10, population_size: int = 10, mutation_rate: float = 0.2) -> MLPClassifier:
-    """
-        Obtém a melhor mlp dada a busca genética.
-        
-        Args:
-            generations (int): número de gerações, por padrão é 10
-            population_size (int): tamanho da população, por padrão é 10
-            mutation_rate (float): taxa de mutação, por padrão é 0.2
-        
-        Returns:
-            MLPClassifier: a melhor rede MLPClassifier
-    """
+def get_best_mlp(generations: int = 10, population_size: int = 10, mutation_rate: float = 0.2) -> tuple[MLPClassifier, MLPScaler]:
     params: MLPParams = get_params(
         generations=generations,
         population_size=population_size,
         mutation_rate=mutation_rate
     )["best_params"]
     
-    mlp: MLPClassifier = MLPClassifier(
+    mlp = MLPClassifier(
         hidden_layer_sizes=params['hidden_neurons_size'],
         activation=params['activation'],
         alpha=params['alpha'],
@@ -301,28 +311,25 @@ def get_best_mlp(generations: int = 10, population_size: int = 10, mutation_rate
         max_iter=params['max_iterations']
     )
     
-    return mlp
+    scaler_name = params["scaler"]
+    if scaler_name == "standard":
+        scaler = StandardScaler()
+    elif scaler_name == "minmax":
+        scaler = MinMaxScaler()
+    else:
+        scaler = RobustScaler()
+        
+    return mlp, scaler
 
 
-def get_worst_mlp(generations: int = 10, population_size: int = 10, mutation_rate: float = 0.2) -> MLPClassifier:
-    """
-        Obtém a pior mlp dada a busca genética.
-        
-        Args:
-            generations (int): número de gerações, por padrão é 10
-            population_size (int): tamanho da população, por padrão é 10
-            mutation_rate (float): taxa de mutação, por padrão é 0.2
-        
-        Returns:
-            MLPClassifier: a pior rede MLPClassifier
-    """
+def get_worst_mlp(generations: int = 10, population_size: int = 10, mutation_rate: float = 0.2) -> tuple[MLPClassifier, MLPScaler]:
     params: MLPParams = get_params(
         generations=generations,
         population_size=population_size,
         mutation_rate=mutation_rate
     )["worst_params"]
     
-    mlp: MLPClassifier = MLPClassifier(
+    mlp = MLPClassifier(
         hidden_layer_sizes=params['hidden_neurons_size'],
         activation=params['activation'],
         alpha=params['alpha'],
@@ -330,6 +337,14 @@ def get_worst_mlp(generations: int = 10, population_size: int = 10, mutation_rat
         max_iter=params['max_iterations']
     )
     
-    return mlp
+    scaler_name = params["scaler"]
+    if scaler_name == "standard":
+        scaler = StandardScaler()
+    elif scaler_name == "minmax":
+        scaler = MinMaxScaler()
+    else:
+        scaler = RobustScaler()
+        
+    return mlp, scaler
 
 

@@ -2,30 +2,28 @@
 Testes para o módulo random_search.py
 Cada função de teste verifica uma etapa por vez.
 """
-import sys
-import os
-# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mpl')))
+
 from mlp import random_search
 
 from sklearn.neural_network import MLPClassifier
 
 VALORES_VALIDOS = {
     "hidden_neurons_size": [3, 5, 10, 15, 20, 25, 30],
-    "activation":          ["relu", "tanh", "logistic"],
-    "alpha":               [0.0001, 0.001, 0.01, 0.1],
-    "solver":              ["adam", "sgd"],
-    "max_iterations":      [10, 100, 500, 1000, 2000],
+    "activation": ["relu", "tanh", "logistic"],
+    "alpha": [0.0001, 0.001, 0.01, 0.1],
+    "solver": ["adam", "sgd"],
+    "max_iterations": [10, 100, 500, 1000, 2000],
+    "scaler": ["standard", "minmax", "robust"],
 }
 
-NUM_BUSCAS_RAPIDO = 5   # valor pequeno = agilidade.
+NUM_BUSCAS_RAPIDO = 5
+
 
 def test_get_params_retorna_dicionario():
     """get_params() deve retornar um dicionário (dict)."""
     resultado = random_search.get_params(num_searchs=NUM_BUSCAS_RAPIDO)
 
-    assert isinstance(resultado, dict), (
-        f"Esperava dict, mas recebeu {type(resultado)}"
-    )
+    assert isinstance(resultado, dict), f"Esperava dict, mas recebeu {type(resultado)}"
 
     print("OK  test_get_params_retorna_dicionario")
 
@@ -34,7 +32,13 @@ def test_get_params_possui_todas_as_chaves():
     """O dicionário retornado deve ter exatamente as 5 chaves esperadas."""
     resultado = random_search.get_params(num_searchs=NUM_BUSCAS_RAPIDO)
 
-    chaves_esperadas = {"best_accuracy", "best_params", "worst_accuracy", "worst_params", "historic"}
+    chaves_esperadas = {
+        "best_accuracy",
+        "best_params",
+        "worst_accuracy",
+        "worst_params",
+        "historic",
+    }
     chaves_recebidas = set(resultado.keys())
 
     assert chaves_recebidas == chaves_esperadas, (
@@ -69,6 +73,7 @@ def test_get_params_historic_tem_tamanho_correto():
     )
 
     print("OK  test_get_params_historic_tem_tamanho_correto")
+
 
 def test_best_params_tem_todas_as_chaves():
     """
@@ -174,7 +179,7 @@ def test_best_accuracy_maior_ou_igual_a_worst_accuracy():
     """
     resultado = random_search.get_params(num_searchs=NUM_BUSCAS_RAPIDO)
 
-    best  = resultado["best_accuracy"]
+    best = resultado["best_accuracy"]
     worst = resultado["worst_accuracy"]
 
     assert best >= worst, (
@@ -182,6 +187,7 @@ def test_best_accuracy_maior_ou_igual_a_worst_accuracy():
     )
 
     print("OK  test_best_accuracy_maior_ou_igual_a_worst_accuracy")
+
 
 def test_best_accuracy_bate_com_maximo_do_historico():
     """
@@ -225,14 +231,16 @@ def test_cada_item_do_historico_tem_accuracy_e_params():
     resultado = random_search.get_params(num_searchs=NUM_BUSCAS_RAPIDO)
 
     for i, item in enumerate(resultado["historic"]):
-        assert hasattr(item, "accuracy"), f"Item {i} do histórico sem atributo 'accuracy'"
-        assert hasattr(item, "params"),   f"Item {i} do histórico sem atributo 'params'"
+        assert hasattr(item, "accuracy"), (
+            f"Item {i} do histórico sem atributo 'accuracy'"
+        )
+        assert hasattr(item, "params"), f"Item {i} do histórico sem atributo 'params'"
 
     print("OK  test_cada_item_do_historico_tem_accuracy_e_params")
 
+
 def test_get_best_mlp_retorna_mlpclassifier():
-    """get_best_mlp() deve retornar um objeto MLPClassifier do sklearn."""
-    mlp = random_search.get_best_mlp(num_searchs=NUM_BUSCAS_RAPIDO)
+    mlp, scaler = random_search.get_best_mlp(num_searchs=NUM_BUSCAS_RAPIDO)
 
     assert isinstance(mlp, MLPClassifier), (
         f"get_best_mlp() deveria retornar MLPClassifier, mas retornou {type(mlp)}"
@@ -242,8 +250,7 @@ def test_get_best_mlp_retorna_mlpclassifier():
 
 
 def test_get_worst_mlp_retorna_mlpclassifier():
-    """get_worst_mlp() deve retornar um objeto MLPClassifier do sklearn."""
-    mlp = random_search.get_worst_mlp(num_searchs=NUM_BUSCAS_RAPIDO)
+    mlp, scaler = random_search.get_worst_mlp(num_searchs=NUM_BUSCAS_RAPIDO)
 
     assert isinstance(mlp, MLPClassifier), (
         f"get_worst_mlp() deveria retornar MLPClassifier, mas retornou {type(mlp)}"
@@ -253,13 +260,13 @@ def test_get_worst_mlp_retorna_mlpclassifier():
 
 
 def test_get_best_mlp_usa_parametros_validos():
-    """
-    Os hiperparâmetros configurados na MLP retornada por get_best_mlp()
-    devem ser valores pertencentes ao espaço de busca definido.
-    """
-    mlp = random_search.get_best_mlp(num_searchs=NUM_BUSCAS_RAPIDO)
+    mlp, scaler = random_search.get_best_mlp(num_searchs=NUM_BUSCAS_RAPIDO)
 
-    neuronio = mlp.hidden_layer_sizes if isinstance(mlp.hidden_layer_sizes, int) else mlp.hidden_layer_sizes[0]
+    neuronio = (
+        mlp.hidden_layer_sizes
+        if isinstance(mlp.hidden_layer_sizes, int)
+        else mlp.hidden_layer_sizes[0]
+    )
 
     assert neuronio in VALORES_VALIDOS["hidden_neurons_size"], (
         f"hidden_layer_sizes inválido: {neuronio}"
@@ -267,17 +274,14 @@ def test_get_best_mlp_usa_parametros_validos():
     assert mlp.activation in VALORES_VALIDOS["activation"], (
         f"activation inválido: {mlp.activation}"
     )
-    assert mlp.alpha in VALORES_VALIDOS["alpha"], (
-        f"alpha inválido: {mlp.alpha}"
-    )
-    assert mlp.solver in VALORES_VALIDOS["solver"], (
-        f"solver inválido: {mlp.solver}"
-    )
+    assert mlp.alpha in VALORES_VALIDOS["alpha"], f"alpha inválido: {mlp.alpha}"
+    assert mlp.solver in VALORES_VALIDOS["solver"], f"solver inválido: {mlp.solver}"
     assert mlp.max_iter in VALORES_VALIDOS["max_iterations"], (
         f"max_iter inválido: {mlp.max_iter}"
     )
 
     print("OK  test_get_best_mlp_usa_parametros_validos")
+
 
 def test_get_params_com_uma_busca():
     """
@@ -286,38 +290,32 @@ def test_get_params_com_uma_busca():
     """
     resultado = random_search.get_params(num_searchs=1)
 
-    assert len(resultado["historic"]) == 1, (
-        "Histórico deveria ter exatamente 1 item"
-    )
+    assert len(resultado["historic"]) == 1, "Histórico deveria ter exatamente 1 item"
     assert resultado["best_accuracy"] == resultado["worst_accuracy"], (
         "Com 1 busca, best e worst deveriam ser iguais"
     )
 
     print("OK  test_get_params_com_uma_busca")
 
+
 TODOS_OS_TESTES = [
     test_get_params_retorna_dicionario,
     test_get_params_possui_todas_as_chaves,
     test_get_params_historic_e_lista,
     test_get_params_historic_tem_tamanho_correto,
-
     test_best_params_tem_todas_as_chaves,
     test_worst_params_tem_todas_as_chaves,
     test_best_params_valores_dentro_do_espaco_de_busca,
     test_worst_params_valores_dentro_do_espaco_de_busca,
-
     test_best_accuracy_e_float_entre_0_e_1,
     test_worst_accuracy_e_float_entre_0_e_1,
     test_best_accuracy_maior_ou_igual_a_worst_accuracy,
-
     test_best_accuracy_bate_com_maximo_do_historico,
     test_worst_accuracy_bate_com_minimo_do_historico,
     test_cada_item_do_historico_tem_accuracy_e_params,
-
     test_get_best_mlp_retorna_mlpclassifier,
     test_get_worst_mlp_retorna_mlpclassifier,
     test_get_best_mlp_usa_parametros_validos,
-
     test_get_params_com_uma_busca,
 ]
 
@@ -349,3 +347,4 @@ if __name__ == "__main__":
         print("\nDetalhes das falhas:")
         for nome, mensagem in falhas:
             print(f"\n  [{nome}]\n  {mensagem}")
+
