@@ -87,27 +87,23 @@ def generate_median_search_comparison_plot(num_samples: int = 15):
         running_max = get_running_max(res["historic"])
         genetic_runs_running_max.append(running_max)
 
-    # Convert lists of lists to arrays for element-wise statistics
-    random_runs_running_max = np.array(random_runs_running_max)  # shape (15, 15)
+    random_runs_running_max = np.array(random_runs_running_max)
     random_medians = np.median(random_runs_running_max, axis=0)
     random_means = np.mean(random_runs_running_max, axis=0)
 
-    genetic_runs_running_max = np.array(genetic_runs_running_max)  # shape (15, 15)
+    genetic_runs_running_max = np.array(genetic_runs_running_max)
     genetic_medians = np.median(genetic_runs_running_max, axis=0)
     genetic_means = np.mean(genetic_runs_running_max, axis=0)
 
-    # Styling of the new plot
     plot.figure(figsize=(10, 6))
     plot.grid(True, linestyle="--", alpha=0.5)
 
     steps_random = range(1, len(random_medians) + 1)
     steps_genetic = range(1, len(genetic_medians) + 1)
 
-    # Color choices
-    color_random = "#E63946"  # Crimson
-    color_genetic = "#1D3557"  # Indigo
+    color_random = "#E63946"
+    color_genetic = "#1D3557"
 
-    # Plot Random Search
     plot.plot(
         steps_random,
         random_medians,
@@ -124,7 +120,7 @@ def generate_median_search_comparison_plot(num_samples: int = 15):
         linewidth=2.0,
         alpha=0.85,
     )
-    # Shading interquartile range (IQR)
+
     random_q25 = np.percentile(random_runs_running_max, 25, axis=0)
     random_q75 = np.percentile(random_runs_running_max, 75, axis=0)
     plot.fill_between(
@@ -136,7 +132,6 @@ def generate_median_search_comparison_plot(num_samples: int = 15):
         label="Random Search (IQR)",
     )
 
-    # Plot Genetic Search
     plot.plot(
         steps_genetic,
         genetic_medians,
@@ -153,7 +148,7 @@ def generate_median_search_comparison_plot(num_samples: int = 15):
         linewidth=2.0,
         alpha=0.85,
     )
-    # Shading interquartile range (IQR)
+
     genetic_q25 = np.percentile(genetic_runs_running_max, 25, axis=0)
     genetic_q75 = np.percentile(genetic_runs_running_max, 75, axis=0)
     plot.fill_between(
@@ -180,7 +175,6 @@ def generate_median_search_comparison_plot(num_samples: int = 15):
     plot.ylim(bottom=0.0, top=1.05)
     plot.xticks(np.arange(0, 16, 2))
 
-    # Clean axes spines
     ax = plot.gca()
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -194,6 +188,7 @@ def generate_median_search_comparison_plot(num_samples: int = 15):
     print(
         f"Saved median comparison plot to {PATH_TO_SAVE / 'median_search_comparison.png'}"
     )
+    return random_results, genetic_results
 
 
 def process_and_plot_results():
@@ -206,16 +201,13 @@ def process_and_plot_results():
         "scaler": ("Scalers", "scaler"),
     }
 
-    random_search_results: GetParamsReturn = get_random_params(num_searchs=15)
-    genetic_search_results: GetParamsReturn = get_genetic_params(
-        generations=3, population_size=5
-    )
+    random_results, genetic_results = generate_median_search_comparison_plot(50)
 
-    random_historic = random_search_results["historic"]
-    genetic_historic = genetic_search_results["historic"]
+    random_historic_single = random_results[0]["historic"]
+    genetic_historic_single = genetic_results[0]["historic"]
 
-    random_running = get_running_max(random_historic)
-    genetic_running = get_running_max(genetic_historic)
+    random_running = get_running_max(random_historic_single)
+    genetic_running = get_running_max(genetic_historic_single)
 
     plot.clf()
     plot.plot(range(1, len(random_running) + 1), random_running, label="Random Search")
@@ -229,14 +221,19 @@ def process_and_plot_results():
     plot.savefig(PATH_TO_SAVE / "search_comparison.png")
     plot.close()
 
-    # Generate the new median comparison plot
-    generate_median_search_comparison_plot(50)
+    random_historic_all = []
+    for res in random_results:
+        random_historic_all.extend(res["historic"])
+
+    genetic_historic_all = []
+    for res in genetic_results:
+        genetic_historic_all.extend(res["historic"])
 
     random_grouped = group_accuracies_by_param(
-        random_historic, list(PARAM_CONFIG.keys())
+        random_historic_all, list(PARAM_CONFIG.keys())
     )
     genetic_grouped = group_accuracies_by_param(
-        genetic_historic, list(PARAM_CONFIG.keys())
+        genetic_historic_all, list(PARAM_CONFIG.keys())
     )
 
     for param_key, (title, file_prefix) in PARAM_CONFIG.items():
