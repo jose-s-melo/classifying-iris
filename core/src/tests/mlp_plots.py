@@ -11,12 +11,16 @@ from pathlib import Path
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
-PATH_TO_SAVE = Path("./plots")
+PATH_TO_SAVE = Path(__file__).resolve().parent.parent / "plots"
 PATH_TO_SAVE.mkdir(exist_ok=True)
 
 
 def calculate_mean(values: List[float]) -> float:
     return sum(values) / len(values) if values else 0.0
+
+
+def calculate_median(values: List[float]) -> float:
+    return float(np.median(values)) if values else 0.0
 
 
 def get_running_max(historic: List[HistoricItem]) -> List[float]:
@@ -256,6 +260,20 @@ def process_and_plot_results():
         plot.xticks(x, all_keys)
         plot.legend()
         plot.savefig(PATH_TO_SAVE / f"{file_prefix}_bar.png")
+        plot.close()
+
+        random_medians = [calculate_median(random_data.get(k, [])) for k in all_keys]
+        genetic_medians = [calculate_median(genetic_data.get(k, [])) for k in all_keys]
+
+        plot.clf()
+        plot.bar(x - width / 2, random_medians, width, label="Random Search")
+        plot.bar(x + width / 2, genetic_medians, width, label="Genetic Search")
+        plot.title(f"Median Accuracy by {title}")
+        plot.xlabel(title)
+        plot.ylabel("Accuracy")
+        plot.xticks(x, all_keys)
+        plot.legend()
+        plot.savefig(PATH_TO_SAVE / f"{file_prefix}_median_bar.png")
         plot.close()
 
         fig, (ax1, ax2) = plot.subplots(1, 2, figsize=(12, 5), sharey=True)
